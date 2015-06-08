@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0.0
+Name=VoiceOutLoud
+GenericName=VoiceOutLoud
+Comment=Convert Text To Speech Via Voice Synthesizer
+Name[el]=VoiceOutLoud
+GenericName[el]=VoiceOutLoud
+Comment[el]=Μετατροπέας κειμένου σε ομιλία μέσω συνθετητή φωνής
+Exec=VoiceOutLoud
+Terminal=false
+X-MultipleArgs=false
+Type=Application
+Icon=VoiceOutLoud
+Categories=AudioVideo;Utility;Other;
+MimeType=text/plain;
+StartupNotify=true

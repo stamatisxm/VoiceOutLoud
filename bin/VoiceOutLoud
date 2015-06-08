@@ -1,0 +1,546 @@
+#!/usr/bin/tclsh
+
+#
+#    VoiceOutLoud - { Text - To - Speech - GUI }
+#    Copyright (C) 2013-2014  Stamatis X. Mavrogeorgis
+#
+#    Author's Email: stamatis@zirconix.net
+#    Author's Website: http://www.istos.info
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# version 1.0.3 - Cleaned up some debugging commented code
+# version 1.0.2 - Added menu translation for Greek on switching languages
+# version 1.0.1 - Added plain text file support (loading / saving)
+# version 1.0.0 - Added initialization and saving sattings on exit functionality
+# version 0.8.2 - Added optional font customization (source code only, no GUI controls)
+# version 0.8.0 - Added Program startup / closing audio greetings
+# version 0.6.0 - Added Cut / Copy / Paste menu
+# version 0.4.0 - Added second language control and logic
+# version 0.2.0 - Added Volume / Pitch / Rate / Voice controls
+# version 0.1.0 - Added extended controls logic (stop on closing and SIG control)
+# version 0.0.2 - Added Pause / Resume and Clear controls
+# version 0.0.1 - First attempt, with Textarea and Play/Stop controls
+
+package require Tk
+package require Tclx
+#package require Signal
+package require autoscroll
+package require tooltip
+
+set generalFont "Linux Biolinum O"
+set generalFont "FreeSans"
+set generalFont "Dialog"
+set generalFont "DejaVu Sans Condensed"
+set generalFont "Droid Sans"
+set generalFont "DejaVu Sans"
+set generalFont "Liberation Sans"
+set generalFontSize 11
+set generalFontSlant {italic}
+set generalFontSlant {roman}
+
+font create widgetFont -family $generalFont -size $generalFontSize -slant $generalFontSlant
+font configure widgetFont -family $generalFont -size $generalFontSize -slant $generalFontSlant
+
+proc volAbout { } {
+  global volVersion volLicense
+  set sysDateTime [ clock seconds ]
+  set currYear [ clock format $sysDateTime -format %Y ]
+  set sxTab {        }
+  set aboutMessage "VoiceOutLoud v$volVersion\n${sxTab}Copyright (C) 2013-$currYear\n${sxTab}Stamatis X. Mavrogeorgis\n${sxTab}Email: stamatis@zirconix.net\n${sxTab}Web: http://www.istos.info"
+  set aboutDetail "$volLicense\n\nThis program comes with\n${sxTab}${sxTab}ABSOLUTELY NO WARRANTY;\n\nThis is free software, and you are welcome to\nredistribute it under certain conditions; - See:\nGPL-3.0 on <http://www.gnu.org/licenses/>"
+  option add *__tk__messagebox*wrapLength {352}
+  tk_messageBox -title "VoiceOutLoud v$volVersion" -message $aboutMessage -detail $aboutDetail
+}
+
+proc every {ms rCommand} {
+  {*}$rCommand
+  after $ms [list after idle [info level 0]]
+}
+
+proc wrapToggle {} {
+  global wrapState
+  if { $wrapState == {on} } {
+    .frmAppTxt.textData configure -wrap word
+  } else {
+    .frmAppTxt.textData configure -wrap none
+  }
+}
+
+proc buttonExit {} {
+  buttonStop
+  global VOLResourceFile spinVolumeVar spinPitchVar spinRateVar optMenuLangVar optMenuVoiceVar wrapState currentUser greeting2
+  global toolTipState
+  global greetVolumeVar greetPitchVar greetRateVar greetLangVar greetVoiceVar
+  set fileHandle [ open "$VOLResourceFile" "w" ]
+  puts $fileHandle "spinVolumeVar $spinVolumeVar"
+  puts $fileHandle "spinPitchVar $spinPitchVar"
+  puts $fileHandle "spinRateVar $spinRateVar"
+  puts $fileHandle "optMenuLangVar $optMenuLangVar"
+  puts $fileHandle "optMenuVoiceVar $optMenuVoiceVar"
+  puts $fileHandle "wrapState $wrapState"
+  puts $fileHandle "toolTipState $toolTipState"
+  puts $fileHandle "greetVolumeVar $greetVolumeVar"
+  close $fileHandle
+  speakGreeting $greetVolumeVar $greetPitchVar $greetRateVar $greetLangVar $greetVoiceVar "$greeting2 $currentUser"
+  exit
+}
+
+proc speakGreeting { greetVolumeVar greetPitchVar greetRateVar greetLangVar greetVoiceVar args } {
+  exec spd-say -i$greetVolumeVar -p$greetPitchVar -r$greetRateVar -l$greetLangVar -t$greetVoiceVar "$args" &
+}
+
+proc switchLanguage {args} {
+  global optName optMenuLangVar optMenuVoiceVar greeting2
+  switch -- $optMenuLangVar {
+    "Ελληνικά" {
+      .appMenu entryconfig 0 -label {Αρχείο}
+      .appMenu.fileMenu entryconfig 0 -label {Άνοιγμα}
+      .appMenu.fileMenu entryconfig 1 -label {Αποθήκευση Ως}
+      .appMenu entryconfig 2 -label {Επεξεργασία}
+      .appMenu.editMenu entryconfig 0 -label {Αποκοπή}
+      .appMenu.editMenu entryconfig 1 -label {Αντιγραφή}
+      .appMenu.editMenu entryconfig 2 -label {Επικόλληση}
+      .appMenu entryconfig 4 -label {Προτιμήσεις}
+      .appMenu.prefMenu entryconfig 0 -label {Θλάση Γραμμών}
+      .appMenu.prefMenu entryconfig 1 -label {Επεξηγήσεις}
+      .appMenu.prefMenu entryconfig 2 -label {Χαιρετισμοί}
+      .appMenu entryconfig 6 -label {Βοήθεια}
+      .appMenu.helpMenu entryconfig 0 -label {Περί}
+      set greeting2 "Αντίο"
+      .labOptMenuVoice configure -text "Φωνή"
+      .labSpinPitch configure -text "Χροιά"
+      .labSpinRate configure -text "Ταχύτητα"
+      .labSpinVolume configure -text "Ένταση"
+      set optMenuVoiceList { {Αντρική1} {Αντρική2} {Αντρική3} {Γυναικεία1} {Γυναικεία2} {Γυναικεία3} {Παιδική(Αγόρι)} {Παιδική(Κορίτσι)} }
+      $optName delete 0 end
+      set j [llength $optMenuVoiceList]
+      for {set i 0} {$i < $j} {incr i} {
+        set e [lindex $optMenuVoiceList $i]
+        $optName insert $i radiobutton -label $e -variable optMenuVoiceVar -command { global optMenuVoiceVar; set varname $optMenuVoiceVar }
+      }
+      switch -- $optMenuVoiceVar {
+        "Male1" { set optMenuVoiceVar "Αντρική1" }
+        "Male2" { set optMenuVoiceVar "Αντρική2" }
+        "Male3" { set optMenuVoiceVar "Αντρική3" }
+        "Female1" { set optMenuVoiceVar "Γυναικεία1" }
+        "Female2" { set optMenuVoiceVar "Γυναικεία2" }
+        "Female3" { set optMenuVoiceVar "Γυναικεία3" }
+        "Child(Male)" { set optMenuVoiceVar "Παιδική(Αγόρι)" }
+        "Child(Female)" { set optMenuVoiceVar "Παιδική(Κορίτσι)" }
+      }
+      .butPlay configure -text "Έναρξη >"
+      .butPause configure -text "Παύση ||"
+      .butResume configure -text "Συνέχεια |>"
+      .butStop configure -text "Λήξη \[\]"
+      .butClear configure -text "Εκκαθάριση"
+      .butExit configure -text "Έξοδος"
+      tooltip::tooltip .frmAppTxt.textData "Περιοχή κειμένου για αναπαραγωγή, μέσω του συνθετητή ομιλίας."
+      tooltip::tooltip .optMenuVoice "Αλλαγή του φύλου φωνής του συνθετητή ομιλίας."
+      tooltip::tooltip .spinPitch "Αυξομείωση της χροιάς του συνθετητή ομιλίας."
+      tooltip::tooltip .spinRate "Αυξομείωση της ταχύτητας της συντιθέμενης ομιλίας."
+      tooltip::tooltip .spinVolume "Αυξομείωση της έντασης της συντιθέμενης ομιλίας."
+      tooltip::tooltip .optMenuLang "Αλλαγή της γλώσσας του προγράμματος και του συνθετητή ομιλίας."
+      tooltip::tooltip .butClear "Εκκαθάριση της περιοχής κειμένου."
+      tooltip::tooltip .butPlay "Αναπαραγωγή του κειμένου σε ομιλία."
+      tooltip::tooltip .butPause "Παύση αναπαραγωγής ομιλίας."
+      tooltip::tooltip .butResume "Συνέχεια ήδη πεπαυσμένης αναπαραγωγής ομιλίας."
+      tooltip::tooltip .butStop "Τερματισμός αναπαραγωγής ομιλίας."
+      tooltip::tooltip .butExit "Τερματισμός αναπαραγωγής ομιλίας και αποθήκευση όλων των ρυθμίσεων."
+    }
+    "English" {
+      .appMenu entryconfig 0 -label {File}
+      .appMenu.fileMenu entryconfigure 0 -label {Load}
+      .appMenu.fileMenu entryconfigure 1 -label {Save As}
+      .appMenu entryconfig 2 -label {Edit}
+      .appMenu.editMenu entryconfigure 0 -label {Cut}
+      .appMenu.editMenu entryconfigure 1 -label {Copy}
+      .appMenu.editMenu entryconfigure 2 -label {Paste}
+      .appMenu entryconfig 4 -label {Preferences}
+      .appMenu.prefMenu entryconfigure 0 -label {Wrap Text}
+      .appMenu.prefMenu entryconfigure 1 -label {Show Tooltips}
+      .appMenu.prefMenu entryconfigure 2 -label {Greetings}
+      .appMenu entryconfig 6 -label {Help}
+      .appMenu.helpMenu entryconfigure 0 -label {About}
+      set greeting2 "Goodbye"
+      .labOptMenuVoice configure -text "Voice"
+      .labSpinPitch configure -text "Pitch"
+      .labSpinRate configure -text "Rate"
+      .labSpinVolume configure -text "Volume"
+      set optMenuVoiceList { {Male1} {Male2} {Male3} {Female1} {Female2} {Female3} {Child(Male)} {Child(Female)} }
+      $optName delete 0 end
+      set j [llength $optMenuVoiceList]
+      for {set i 0} {$i < $j} {incr i} {
+        set e [lindex $optMenuVoiceList $i]
+        $optName insert $i radiobutton -label $e -variable optMenuVoiceVar -command { global optMenuVoiceVar; set varname $optMenuVoiceVar }
+      }
+      switch -- $optMenuVoiceVar {
+        "Αντρική1" { set optMenuVoiceVar "Male1" }
+        "Αντρική2" { set optMenuVoiceVar "Male2" }
+        "Αντρική3" { set optMenuVoiceVar "Male3" }
+        "Γυναικεία1" { set optMenuVoiceVar "Female1" }
+        "Γυναικεία2" { set optMenuVoiceVar "Female2" }
+        "Γυναικεία3" { set optMenuVoiceVar "Female3" }
+        "Παιδική(Αγόρι)" { set optMenuVoiceVar "Child(Male)" }
+        "Παιδική(Κορίτσι)" { set optMenuVoiceVar "Child(Female)" }
+      }
+      .butPlay configure -text "Play >"
+      .butPause configure -text "Pause ||"
+      .butResume configure -text "Resume |>"
+      .butStop configure -text "Stop \[\]"
+      .butClear configure -text "Clear"
+      .butExit configure -text "Exit"
+      tooltip::tooltip .frmAppTxt.textData "Paste area for text to be read by the speech syntesizer."
+      tooltip::tooltip .optMenuVoice "Change the voice gender of the speech synthesizer."
+      tooltip::tooltip .spinPitch "Change the pitch of the speech synthesizer."
+      tooltip::tooltip .spinRate "Change the speed of the synthesized speech."
+      tooltip::tooltip .spinVolume "Change the volume of the synthesized speech."
+      tooltip::tooltip .optMenuLang "Change the program's and the speech synthesizer's language."
+      tooltip::tooltip .butClear "Clear the text area."
+      tooltip::tooltip .butPlay "Plays the text to speech back."
+      tooltip::tooltip .butPause "Pauses playback."
+      tooltip::tooltip .butResume "Resumes paused playback."
+      tooltip::tooltip .butStop "Stops the playback. (Resets speech synthesizer's buffer)"
+      tooltip::tooltip .butExit "Stops playback, saves all settings and exits."
+    }
+  }
+}
+
+proc buttonPlay {} {
+  global spID playControl .butPlay .butStop .butPause .butResume spinVolumeVar spinPitchVar spinRateVar optMenuVoiceVar optMenuLangVar
+  set textDataVar [ .frmAppTxt.textData get 1.0 end ]
+  buttonStop
+  if { $playControl == 0 } {
+    set optMenuVoiceTVar ""
+    set optMenuLangTVar ""
+    switch -- $optMenuVoiceVar {
+    "Male1" { set optMenuVoiceTVar "male1" }
+    "Αντρική1" { set optMenuVoiceTVar "male1" }
+    "Male2" { set optMenuVoiceTVar "male2" }
+    "Αντρική2" { set optMenuVoiceTVar "male2" }
+    "Male3" { set optMenuVoiceTVar "male3" }
+    "Αντρική3" { set optMenuVoiceTVar "male3" }
+    "Female1" { set optMenuVoiceTVar "female1" }
+    "Γυναικεία1" { set optMenuVoiceTVar "female1" }
+    "Female2" { set optMenuVoiceTVar "female2" }
+    "Γυναικεία2" { set optMenuVoiceTVar "female2" }
+    "Female3" { set optMenuVoiceTVar "female3" }
+    "Γυναικεία3" { set optMenuVoiceTVar "female3" }
+    "Child(Male)" { set optMenuVoiceTVar "child_male" }
+    "Παιδική(Αγόρι)" { set optMenuVoiceTVar "child_male" }
+    "Child(Female)" { set optMenuVoiceTVar "child_female" }
+    "Παιδική(Κορίτσι)" { set optMenuVoiceTVar "child_female" }
+    }
+    switch -- $optMenuLangVar {
+    "English" { set optMenuLangTVar "en" }
+    "Ελληνικά" { set optMenuLangTVar "el" }
+    }
+    regsub -all \' $textDataVar {\&#39;} textDataVar
+    regsub -all \" $textDataVar {\&#34;} textDataVar
+    set spdCommand {bash -c "spd-say -w -x -m some -i$spinVolumeVar -p$spinPitchVar -r$spinRateVar -t$optMenuVoiceTVar -l$optMenuLangTVar \"$textDataVar\"\n  touch /tmp/isMyFileReady"}
+    eval exec $spdCommand &
+
+    set playControl 1
+  }
+  while { $spID <= 1 } {
+    set spID [ catch { exec pgrep sd_espeak } errorMessage ]
+      set spID $errorMessage
+  }
+  .butPlay configure -state disabled
+  .butStop configure -state active
+  .butPause configure -state active
+  .butResume configure -state disabled
+}
+
+proc buttonPause {} {
+  global spID playControl .butPlay .butStop .butPause .butResume
+  if { $playControl == 1 } {
+    if { $spID > 1 } {
+      catch { exec kill -19 $spID } errorMessage
+      set playControl 2
+    }
+  }
+  .butPlay configure -state disabled
+  .butStop configure -state active
+  .butPause configure -state disabled
+  .butResume configure -state active
+}
+
+proc buttonResume {} {
+  global spID playControl .butPlay .butStop .butPause .butResume
+  if { $playControl == 2 } {
+    if { $spID > 1 } {
+      catch { exec kill -18 $spID } errorMessage
+      set playControl 1
+    }
+  }
+  .butPlay configure -state disabled
+  .butStop configure -state active
+  .butPause configure -state active
+  .butResume configure -state disabled
+}
+
+proc buttonStop {} {
+  global spID playControl .butPlay .butStop .butPause .butResume
+  exec spd-say -S
+  if { $playControl == 2 } {
+    catch { exec kill -18 $spID } errorMessage
+  }
+  set playControl 0
+  .butPlay configure -state active
+  .butStop configure -state disabled
+  .butPause configure -state disabled
+  .butResume configure -state disabled
+}
+
+proc buttonClear {} {
+  .frmAppTxt.textData delete 1.0 end
+}
+
+proc loadFile {fileToLoad whatWidget} {
+  if { $fileToLoad != "" } {
+    set fileHandle [ open "$fileToLoad" "r" ]
+    set fileData [ string trimright [ read $fileHandle ] \n ]
+    close $fileHandle
+    $whatWidget delete 1.0 end
+    $whatWidget insert end $fileData
+  }
+}
+
+proc saveAsFile {fileToSaveAs whatWidget} {
+  if { $fileToSaveAs != "" } {
+    set fileHandle [ open "$fileToSaveAs" "w" ]
+    puts $fileHandle [ string trimright [ $whatWidget get 1.0 end] \n ]
+    close $fileHandle
+  }
+}
+
+proc checkIfFinished {} {
+  if { [ file exists /tmp/isMyFileReady ] == 1} {
+    buttonStop
+    file delete /tmp/isMyFileReady
+  }
+}
+
+proc popupMenu {txtAreaMenu xComp yComp} {
+  set xCoord [ expr [ winfo rootx . ]+ $xComp ]
+  set yCoord [ expr [ winfo rooty . ]+ $yComp ]
+  tk_popup $txtAreaMenu $xCoord $yCoord
+}
+
+set tmpMessage [ catch { exec grep {^# version} $argv0 | cut -f3 -d\  | sort -r | head -1 } volVersion ]
+set volLicense {GNU General Public License, version 3 (GPL-3.0)}
+
+set spID 1
+set playControl 0
+
+set currentUser $tcl_platform(user)
+
+set spinVolumeVar 0
+set spinPitchVar 0
+set spinRateVar 0 
+set optMenuLangVar "English"
+set optMenuVoiceVar "Male1"
+set wrapState {on}
+
+set toolTipState {on}
+
+set greetVolumeVar 0
+set greetPitchVar 24
+set greetRateVar -32
+set greetLangVar "el"
+set greetVoiceVar "female2"
+set wrapState {on}
+
+set VOLResourceFile $env(HOME)/.VoiceOutLoudrc
+
+set isResourcePresent [ file exists $VOLResourceFile ]
+
+if { $isResourcePresent == 1 } {
+  set fileHandle [ open "$VOLResourceFile" "r" ]
+  set fileData [ string trimright [ read $fileHandle ] \n ]
+  close $fileHandle
+
+  set data [split $fileData "\n"]
+  set dataLineCounter 0
+  foreach line $data {
+    set line [ regexp -all -inline {\S+} $line ]
+    set line [ split $line { } ]
+    if { $dataLineCounter == 0 } {
+      global spinVolumeVar
+      set spinVolumeVar [ lassign $line spinVolumeVar ]
+    } elseif { $dataLineCounter == 1 } {
+      global spinPitchVar
+      set spinPitchVar [ lassign $line spinPitchVar ]
+    } elseif { $dataLineCounter == 2 } {
+      global spinRateVar
+      set spinRateVar [ lassign $line spinRateVar ]
+    } elseif { $dataLineCounter == 3 } {
+      global optMenuLangVar
+      set optMenuLangVar [ lassign $line optMenuLangVar ]
+    } elseif { $dataLineCounter == 4 } {
+      global optMenuVoiceVar
+      set optMenuVoiceVar [ lassign $line optMenuVoiceVar ]
+    } elseif { $dataLineCounter == 5 } {
+      global wrapState
+      set wrapState [ lassign $line wrapState ]
+    } elseif { $dataLineCounter == 6 } {
+      global toolTipState
+      set toolTipState [ lassign $line toolTipState ]
+    } elseif { $dataLineCounter == 7 } {
+      global greetVolumeVar
+      set greetVolumeVar [ lassign $line greetVolumeVar ]
+    }
+
+    incr dataLineCounter
+  }
+} else {
+  set initMessage "This is the first time you are running this program,\ntherefore some default values have been selected,\nbut your own preferences will be saved automatically\nevery time you exit.\n\n\This message will not appear again.\n\n\Have fun! ;)"
+  option add *__tk__messagebox*wrapLength {352}
+  speakGreeting $greetVolumeVar $greetPitchVar $greetRateVar $greetLangVar $greetVoiceVar $initMessage
+  tk_messageBox -title "Welcome" -detail $initMessage
+}
+
+set greeting "Hello"
+set greeting2 "Goodbye"
+
+switch -- $optMenuLangVar {
+  "Ελληνικά" {set greeting "Γειά σου"; set greeting2 "Αντίο" }
+  "English" { set greeting "Hello"; set greeting2 "Goodbye" }
+}
+
+speakGreeting $greetVolumeVar $greetPitchVar $greetRateVar $greetLangVar $greetVoiceVar "$greeting $currentUser!"
+
+set fileTypes {
+	{{Text Files} {.txt}}
+	{{All Files} {*}}
+}
+
+menu .appMenu -tearoff 0
+.appMenu add cascade -label "File" -underline 0 -menu [menu .appMenu.fileMenu -tearoff 0]
+.appMenu.fileMenu add command -label "Load" -underline 0 -command { loadFile [tk_getOpenFile -filetypes $fileTypes -initialdir $env(HOME) ] .frmAppTxt.textData }
+.appMenu.fileMenu add command -label "Save As" -underline 0 -command { saveAsFile [tk_getSaveFile -filetypes $fileTypes -initialdir $env(HOME) ] .frmAppTxt.textData }
+.appMenu add separator
+.appMenu add cascade -label "Edit" -underline 0 -menu [menu .appMenu.editMenu -tearoff 0]
+.appMenu.editMenu add command -label "Cut" -command { event generate [focus] <<Cut>> }
+.appMenu.editMenu add command -label "Copy" -command { event generate [focus] <<Copy>> }
+.appMenu.editMenu add command -label "Paste" -command { event generate [focus] <<Paste>> }
+.appMenu add separator
+.appMenu add cascade -label "Preferences" -underline 0 -menu [menu .appMenu.prefMenu -tearoff 0]
+.appMenu.prefMenu add checkbutton -label "Wrap Text" -onvalue {on} -offvalue {off} -variable wrapState -command { wrapToggle }
+.appMenu.prefMenu add checkbutton -label "Show Tooltips" -underline 0 -onvalue {on} -offvalue {off} -variable toolTipState -command { ::tooltip::tooltip $toolTipState }
+.appMenu.prefMenu add checkbutton -label "Greetings" -onvalue {0} -offvalue {-100} -variable greetVolumeVar
+.appMenu add separator
+.appMenu add cascade -label "Help" -underline 0 -menu [menu .appMenu.helpMenu -tearoff 0]
+.appMenu.helpMenu add command -label "About" -command { volAbout }
+
+frame .frmApp -relief groove
+frame .frmAppTxt -relief groove
+
+grid rowconfigure . 0 -weight 1
+grid columnconfigure . 0 -weight 1
+grid columnconfigure .frmApp 0 -weight 1
+grid columnconfigure .frmApp 1 -weight 1
+grid columnconfigure .frmApp 2 -weight 1
+grid columnconfigure .frmApp 3 -weight 1
+grid columnconfigure .frmApp 4 -weight 1
+grid rowconfigure .frmApp 0 -weight 1
+grid rowconfigure .frmApp 1 -weight 0
+grid rowconfigure .frmApp 2 -weight 0
+grid rowconfigure .frmApp 3 -weight 0
+
+text .frmAppTxt.textData -wrap word -xscrollcommand { .frmAppTxt.hScrollBar set } -yscrollcommand { .frmAppTxt.vScrollBar set }
+scrollbar .frmAppTxt.vScrollBar -orient vertical -command { .frmAppTxt.textData yview }
+scrollbar .frmAppTxt.hScrollBar -orient horizontal -command { .frmAppTxt.textData xview }
+
+label .labOptMenuVoice -text "Voice" -relief ridge
+label .labSpinPitch -text "Pitch" -relief ridge
+label .labSpinRate -text "Rate" -relief ridge
+label .labSpinVolume -text "Volume" -relief ridge
+label .labOptMenuLang -text "LANG:"
+set optMenuVoiceList { {Male1} {Male2} {Male3} {Female1} {Female2} {Female3} {Child(Male)} {Child(Female)} }
+set optName [ eval tk_optionMenu .optMenuVoice optMenuVoiceVar $optMenuVoiceList ]
+spinbox .spinPitch -from -100 -to 100 -increment 1 -justify right -textvariable spinPitchVar -width 1
+spinbox .spinRate -from -100 -to 100 -increment 1 -justify right -textvariable spinRateVar -width 1
+spinbox .spinVolume -from -100 -to 100 -increment 1 -justify right -textvariable spinVolumeVar -width 1
+tk_optionMenu .optMenuLang optMenuLangVar "English" "Ελληνικά"
+
+button .butPlay -text "Play >" -command "buttonPlay" -width 8
+button .butPause -text "Pause ||" -command "buttonPause" -width 8
+button .butResume -text "Resume |>" -command "buttonResume" -width 8
+button .butStop -text "Stop \[\]" -command "buttonStop" -width 8
+button .butClear -text "Clear" -command "buttonClear" -width 8
+button .butExit -text "Exit" -command "buttonExit" -width 8 -width 8
+
+.butPlay configure -state active
+.butStop configure -state disabled
+.butPause configure -state disabled
+.butResume configure -state disabled
+
+grid .frmApp -row 0 -column 0 -sticky news
+grid .frmAppTxt -in .frmApp -row 0 -column 0 -columnspan 5 -sticky news
+grid .frmAppTxt.textData .frmAppTxt.vScrollBar  -sticky news
+grid .frmAppTxt.hScrollBar  -sticky news
+
+grid rowconfigure .frmAppTxt .frmAppTxt.textData -weight 1
+grid columnconfigure .frmAppTxt .frmAppTxt.textData -weight 1
+
+grid .labOptMenuVoice -in .frmApp -row 1 -column 0  -sticky news
+grid .labSpinPitch -in .frmApp -row 1 -column 1  -sticky news
+grid .labSpinRate -in .frmApp -row 1 -column 2  -sticky news
+grid .labSpinVolume -in .frmApp -row 1 -column 3  -sticky news
+grid .optMenuLang -in .frmApp -row 1 -column 4  -sticky news
+
+grid .optMenuVoice -in .frmApp -row 2 -column 0  -sticky news
+grid .spinPitch -in .frmApp -row 2 -column 1  -sticky news
+grid .spinRate -in .frmApp -row 2 -column 2  -sticky news
+grid .spinVolume -in .frmApp -row 2 -column 3  -sticky news
+grid .butClear -in .frmApp -row 2 -column 4  -sticky news
+
+grid .butPlay -in .frmApp -row 3 -column 0  -sticky news
+grid .butPause -in .frmApp -row 3 -column 1  -sticky news
+grid .butResume -in .frmApp -row 3 -column 2  -sticky news
+grid .butStop -in .frmApp -row 3 -column 3  -sticky news
+grid .butExit -in .frmApp -row 3 -column 4  -sticky news
+
+::autoscroll::autoscroll .frmAppTxt.vScrollBar
+::autoscroll::autoscroll .frmAppTxt.hScrollBar
+
+::tooltip::tooltip delay 512
+::tooltip::tooltip fade true
+::tooltip::tooltip $toolTipState
+
+bind .frmAppTxt.textData <3> {popupMenu .appMenu %x %y}
+
+every 1618 checkIfFinished
+
+wm protocol . WM_DELETE_WINDOW { buttonExit }
+wm title .  "VoiceOutLoud v$volVersion"
+wm minsize . 480 400
+wm iconbitmap . @$env(HOME)/.icons/VoiceOutLoud.xbm
+wm iconmask . @$env(HOME)/.icons/VoiceOutLoud-mask.xbm
+
+trace add variable optMenuLangVar write switchLanguage
+
+wrapToggle
+switchLanguage
+
+if { ! [ catch { package present Tclx } v ] } {
+  signal trap SIGTERM buttonExit;
+}
+if { ! [ catch { package present Signal } v ] } {
+  signal add SIGTERM buttonExit;
+}
+
