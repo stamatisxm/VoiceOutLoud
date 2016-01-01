@@ -121,7 +121,7 @@ proc switchLanguage {args} {
       .appMenu.helpMenu entryconfig 0 -label {Περί}
       set greeting2 "Αντίο"
       .labOptMenuVoice configure -text "Φωνή"
-      .labSpinPitch configure -text "Χροιά"
+      .labSpinPitch configure -text "Τόνος"
       .labSpinRate configure -text "Ταχύτητα"
       .labSpinVolume configure -text "Ένταση"
       set optMenuVoiceList { {Αντρική1} {Αντρική2} {Αντρική3} {Γυναικεία1} {Γυναικεία2} {Γυναικεία3} {Παιδική(Αγόρι)} {Παιδική(Κορίτσι)} }
@@ -529,8 +529,8 @@ every 1618 checkIfFinished
 wm protocol . WM_DELETE_WINDOW { buttonExit }
 wm title .  "VoiceOutLoud v$volVersion"
 wm minsize . 480 400
-wm iconbitmap . @$env(HOME)/.icons/VoiceOutLoud.xbm
-wm iconmask . @$env(HOME)/.icons/VoiceOutLoud-mask.xbm
+wm iconbitmap . @$env(HOME)/.local/share/icons/VoiceOutLoud.xbm
+wm iconmask . @$env(HOME)/.local/share/icons/VoiceOutLoud-mask.xbm
 
 trace add variable optMenuLangVar write switchLanguage
 

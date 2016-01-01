@@ -1,7 +1,7 @@
 # VoiceOutLoud
 A Light Tcl/Tk Text To Speech GUI
 
-<img alt="RoughPad Logo" src="http://istos.info/images/VoiceOutLoud.png" width="48px" height="48px" />
+<img alt="RoughPad Logo" src="http://istos.xyz/images/VoiceOutLoud.png" width="48px" height="48px" />
 
 ## VoiceOutLoud - { Text - To - Speech - GUI }
 VoiceOutLoud is a Tcl/Tk application that uses spd-say to send the text pasted in its text area to the speech-dispatcher which synthesizes it into speech. The parameters for the voice, speed, pitch and volume are fully customizable and the program is currently available in two languages, English and Greek.
