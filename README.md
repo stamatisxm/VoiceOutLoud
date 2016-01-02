@@ -36,7 +36,7 @@ The controls:
 function as in any other audio player.
 
 ### { Program Setup }
-This program is going to be installed by default in your **$HOME/bin** directory. If you have not set your **$HOME/bin** in the **$PATH**, see this [Knowledge Base Snippet](http://istos.info/knowledgebase/knowledgebasesnippet.php?id=15 "Setup your $HOME/bin in the $PATH") for details.
+This program is going to be installed by default in your **$HOME/bin** directory. If you have not set your **$HOME/bin** in the **$PATH**, see [this](http://istos.xyz/linux/include-homebin-in-any-desktop-environment/ "Include $HOME/bin in any Desktop Environment") or [this snippet](http://istos.xyz/linux/include-homebin-in-the-path-for-bash-shell "Setup your $HOME/bin in the $PATH") for details.
 
 To run this program, you need to have the following packages installed in your system (Check with your package manager):
 - _**tcl**_
