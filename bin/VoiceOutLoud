@@ -1,11 +1,10 @@
 #!/usr/bin/tclsh
 
 #
-#    VoiceOutLoud - { Text - To - Speech - GUI }
 #    Copyright (C) 2013-2016  Stamatis X. Mavrogeorgis
 #
 #    Author's Email: stamatis@zirconix.net
-#    Author's Website: http://www.istos.info
+#    Author's Website: http://www.istos.xyz
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -59,7 +58,7 @@ proc volAbout { } {
   set sysDateTime [ clock seconds ]
   set currYear [ clock format $sysDateTime -format %Y ]
   set sxTab {        }
-  set aboutMessage "VoiceOutLoud v$volVersion\n${sxTab}Copyright (C) 2013-$currYear\n${sxTab}Stamatis X. Mavrogeorgis\n${sxTab}Email: stamatis@zirconix.net\n${sxTab}Web: http://www.istos.info"
+  set aboutMessage "VoiceOutLoud v$volVersion\n${sxTab}Copyright (C) 2013-$currYear\n${sxTab}Stamatis X. Mavrogeorgis\n${sxTab}Email: stamatis@zirconix.net\n${sxTab}Web: http://www.istos.xyz"
   set aboutDetail "$volLicense\n\nThis program comes with\n${sxTab}${sxTab}ABSOLUTELY NO WARRANTY;\n\nThis is free software, and you are welcome to\nredistribute it under certain conditions; - See:\nGPL-3.0 on <http://www.gnu.org/licenses/>"
   option add *__tk__messagebox*wrapLength {352}
   tk_messageBox -title "VoiceOutLoud v$volVersion" -message $aboutMessage -detail $aboutDetail
