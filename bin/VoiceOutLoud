@@ -2,7 +2,7 @@
 
 #
 #    VoiceOutLoud - { Text - To - Speech - GUI }
-#    Copyright (C) 2013-2014  Stamatis X. Mavrogeorgis
+#    Copyright (C) 2013-2016  Stamatis X. Mavrogeorgis
 #
 #    Author's Email: stamatis@zirconix.net
 #    Author's Website: http://www.istos.info
@@ -35,8 +35,8 @@
 # version 0.0.1 - First attempt, with Textarea and Play/Stop controls
 
 package require Tk
-package require Tclx
-#package require Signal
+#package require Tclx
+package require Signal
 package require autoscroll
 package require tooltip
 
