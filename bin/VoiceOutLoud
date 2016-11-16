@@ -20,6 +20,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+# version 1.0.4 - Improved error checking on spd-say
 # version 1.0.3 - Cleaned up some debugging commented code
 # version 1.0.2 - Added menu translation for Greek on switching languages
 # version 1.0.1 - Added plain text file support (loading / saving)
@@ -98,7 +99,7 @@ proc buttonExit {} {
 }
 
 proc speakGreeting { greetVolumeVar greetPitchVar greetRateVar greetLangVar greetVoiceVar args } {
-  exec spd-say -i$greetVolumeVar -p$greetPitchVar -r$greetRateVar -l$greetLangVar -t$greetVoiceVar "$args" &
+  catch { exec spd-say -i$greetVolumeVar -p$greetPitchVar -r$greetRateVar -l$greetLangVar -t$greetVoiceVar "$args" & } errMsg
 }
 
 proc switchLanguage {args} {
@@ -248,8 +249,8 @@ proc buttonPlay {} {
     }
     regsub -all \' $textDataVar {\&#39;} textDataVar
     regsub -all \" $textDataVar {\&#34;} textDataVar
-    set spdCommand {bash -c "spd-say -w -x -m some -i$spinVolumeVar -p$spinPitchVar -r$spinRateVar -t$optMenuVoiceTVar -l$optMenuLangTVar \"$textDataVar\"\n  touch /tmp/isMyFileReady"}
-    eval exec $spdCommand &
+    set spdCommand { bash -c "spd-say -w -x -m some -i$spinVolumeVar -p$spinPitchVar -r$spinRateVar -t$optMenuVoiceTVar -l$optMenuLangTVar \"$textDataVar\"\n  touch /tmp/isMyFileReady" }
+    catch { eval exec $spdCommand & } errMsg
 
     set playControl 1
   }
@@ -293,7 +294,7 @@ proc buttonResume {} {
 
 proc buttonStop {} {
   global spID playControl .butPlay .butStop .butPause .butResume
-  exec spd-say -S
+  catch { exec spd-say -S } errMsg
   if { $playControl == 2 } {
     catch { exec kill -18 $spID } errorMessage
   }
@@ -420,7 +421,7 @@ switch -- $optMenuLangVar {
   "English" { set greeting "Hello"; set greeting2 "Goodbye" }
 }
 
-speakGreeting $greetVolumeVar $greetPitchVar $greetRateVar $greetLangVar $greetVoiceVar "$greeting $currentUser!"
+catch { speakGreeting $greetVolumeVar $greetPitchVar $greetRateVar $greetLangVar $greetVoiceVar "$greeting $currentUser!" } errMsg
 
 set fileTypes {
 	{{Text Files} {.txt}}
@@ -445,8 +446,8 @@ menu .appMenu -tearoff 0
 .appMenu add cascade -label "Help" -underline 0 -menu [menu .appMenu.helpMenu -tearoff 0]
 .appMenu.helpMenu add command -label "About" -command { volAbout }
 
-frame .frmApp -relief groove
-frame .frmAppTxt -relief groove
+ttk::frame .frmApp -relief groove
+ttk::frame .frmAppTxt -relief groove
 
 grid rowconfigure . 0 -weight 1
 grid columnconfigure . 0 -weight 1
@@ -461,27 +462,27 @@ grid rowconfigure .frmApp 2 -weight 0
 grid rowconfigure .frmApp 3 -weight 0
 
 text .frmAppTxt.textData -wrap word -xscrollcommand { .frmAppTxt.hScrollBar set } -yscrollcommand { .frmAppTxt.vScrollBar set }
-scrollbar .frmAppTxt.vScrollBar -orient vertical -command { .frmAppTxt.textData yview }
-scrollbar .frmAppTxt.hScrollBar -orient horizontal -command { .frmAppTxt.textData xview }
+ttk::scrollbar .frmAppTxt.vScrollBar -orient vertical -command { .frmAppTxt.textData yview }
+ttk::scrollbar .frmAppTxt.hScrollBar -orient horizontal -command { .frmAppTxt.textData xview }
 
-label .labOptMenuVoice -text "Voice" -relief ridge
-label .labSpinPitch -text "Pitch" -relief ridge
-label .labSpinRate -text "Rate" -relief ridge
-label .labSpinVolume -text "Volume" -relief ridge
-label .labOptMenuLang -text "LANG:"
+ttk::label .labOptMenuVoice -text "Voice" -relief ridge
+ttk::label .labSpinPitch -text "Pitch" -relief ridge
+ttk::label .labSpinRate -text "Rate" -relief ridge
+ttk::label .labSpinVolume -text "Volume" -relief ridge
+ttk::label .labOptMenuLang -text "LANG:"
 set optMenuVoiceList { {Male1} {Male2} {Male3} {Female1} {Female2} {Female3} {Child(Male)} {Child(Female)} }
 set optName [ eval tk_optionMenu .optMenuVoice optMenuVoiceVar $optMenuVoiceList ]
-spinbox .spinPitch -from -100 -to 100 -increment 1 -justify right -textvariable spinPitchVar -width 1
-spinbox .spinRate -from -100 -to 100 -increment 1 -justify right -textvariable spinRateVar -width 1
-spinbox .spinVolume -from -100 -to 100 -increment 1 -justify right -textvariable spinVolumeVar -width 1
+ttk::spinbox .spinPitch -from -100 -to 100 -increment 1 -justify right -textvariable spinPitchVar -width 1
+ttk::spinbox .spinRate -from -100 -to 100 -increment 1 -justify right -textvariable spinRateVar -width 1
+ttk::spinbox .spinVolume -from -100 -to 100 -increment 1 -justify right -textvariable spinVolumeVar -width 1
 tk_optionMenu .optMenuLang optMenuLangVar "English" "Ελληνικά"
 
-button .butPlay -text "Play >" -command "buttonPlay" -width 8
-button .butPause -text "Pause ||" -command "buttonPause" -width 8
-button .butResume -text "Resume |>" -command "buttonResume" -width 8
-button .butStop -text "Stop \[\]" -command "buttonStop" -width 8
-button .butClear -text "Clear" -command "buttonClear" -width 8
-button .butExit -text "Exit" -command "buttonExit" -width 8 -width 8
+ttk::button .butPlay -text "Play >" -command "buttonPlay" -width 8
+ttk::button .butPause -text "Pause ||" -command "buttonPause" -width 8
+ttk::button .butResume -text "Resume |>" -command "buttonResume" -width 8
+ttk::button .butStop -text "Stop \[\]" -command "buttonStop" -width 8
+ttk::button .butClear -text "Clear" -command "buttonClear" -width 8
+ttk::button .butExit -text "Exit" -command "buttonExit" -width 8 -width 8
 
 .butPlay configure -state active
 .butStop configure -state disabled
@@ -528,13 +529,15 @@ every 1618 checkIfFinished
 wm protocol . WM_DELETE_WINDOW { buttonExit }
 wm title .  "VoiceOutLoud v$volVersion"
 wm minsize . 480 400
-wm iconbitmap . @$env(HOME)/.local/share/icons/VoiceOutLoud.xbm
-wm iconmask . @$env(HOME)/.local/share/icons/VoiceOutLoud-mask.xbm
+set appIcon [ image create photo -file $env(HOME)/.local/share/icons/VoiceOutLoud.png ]
+wm iconphoto . -default $appIcon
 
 trace add variable optMenuLangVar write switchLanguage
 
 wrapToggle
 switchLanguage
+
+if { [ lindex $argv 0 ]  == "-m" } { wm withdraw . ; wm iconify . }
 
 if { ! [ catch { package present Tclx } v ] } {
   signal trap SIGTERM buttonExit;
