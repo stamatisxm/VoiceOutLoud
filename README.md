@@ -62,10 +62,7 @@ If everything has gone ok, you should be able to find the program in the _**Acce
 The tarball contains these files (relative to the user's $HOME):
 <pre>
 bin/VoiceOutLoud
-.icons/VoiceOutLoud-mask.xbm
 .icons/VoiceOutLoud.png
-.icons/VoiceOutLoud.xbm
-.icons/VoiceOutLoud.xpm
 .local/share/applications/VoiceOutLoud.desktop
 </pre>
 
